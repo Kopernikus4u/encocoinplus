@@ -1,3 +1,5 @@
+For TESTING!
+
 EPGC Core integration/staging repository
 =====================================
 EPG(EncocoinPlus) is an open source crypto-currency focused on fast private transactions using the Zerocoin protocol in its public blockchain, with low transaction fees & environmental footprint.  It utilizes anonymous proof of stake protocol, called zPoS, combined with regular PoS and masternodes for securing its network. 
