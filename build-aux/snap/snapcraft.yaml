@@ -68,7 +68,7 @@ apps:
     plugs: [home]
 parts:
   epgc-core:
-    source: https://github.com/EPGC-Project/EPGC
+    source: https://github.com/Kopernikus4u/encocoinplus
     source-type: git
     source-tag: master
     plugin: nil

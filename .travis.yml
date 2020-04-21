@@ -14,7 +14,7 @@
 #
 # These caches can be manually removed if necessary. This is one of the very
 # few manual operations that is possible with Travis, and it can be done by a
-# EPGC GitHub member via the Travis web interface [0].
+# PIVX GitHub member via the Travis web interface [0].
 #
 # Travis CI uploads the cache after the script phase of the build [1].
 # However, the build is terminated without saving the chache if it takes over
@@ -33,20 +33,16 @@ cache:
   directories:
     - $TRAVIS_BUILD_DIR/depends/built
     - $TRAVIS_BUILD_DIR/depends/sdk-sources
-    - $TRAVIS_BUILD_DIR/cmake-build-debug
     - $HOME/.ccache
 stages:
   - lint
   - cmake
   - test
-addons:
-    apt:
-        packages:
-            - sshpass
+
 env:
   global:
     - MAKEJOBS=-j3
-    - RUN_UNIT_TESTS=false
+    - RUN_UNIT_TESTS=true
     - RUN_FUNCTIONAL_TESTS=false
     - RUN_BENCH=false  # Set to true for any one job that has debug enabled, to quickly check bench is not crashing or hitting assertions
     - DOCKER_NAME_TAG=ubuntu:18.04
@@ -106,7 +102,7 @@ jobs:
         # -Wno-psabi is to disable ABI warnings: "note: parameter passing for argument of type ... changed in GCC 7.1"
         # This could be removed once the ABI change warning does not show up by default
         BITCOIN_CONFIG="--with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports CXXFLAGS=-Wno-psabi"
-
+        
     - stage: test
       name: 'ARM 64-bit  [GOAL:install] [no unit or functional tests]'
       env: >-
@@ -116,17 +112,7 @@ jobs:
         RUN_FUNCTIONAL_TESTS=false
         GOAL="install"
         BITCOIN_CONFIG="--with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports"
-
-    - stage: test
-      name: 'Win32  [GOAL: deploy] [no functional tests]'
-      env: >-
-        HOST=i686-w64-mingw32
-        DPKG_ADD_ARCH="i386"
-        PACKAGES="python3 nsis g++-mingw-w64-i686 wine-binfmt wine32"
-        RUN_FUNCTIONAL_TESTS=false
-        GOAL="deploy"
-        BITCOIN_CONFIG="--with-gui=qt5 --enable-reduce-exports"
-
+        
     - stage: test
       name: 'Win64  [GOAL: deploy] [no functional tests]'
       env: >-
@@ -134,8 +120,8 @@ jobs:
         PACKAGES="python3 nsis g++-mingw-w64-x86-64 wine-binfmt wine64"
         RUN_FUNCTIONAL_TESTS=false
         GOAL="deploy"
-        BITCOIN_CONFIG="--with-gui=qt5 --enable-reduce-exports"
-
+        BITCOIN_CONFIG="--with-gui=auto --enable-reduce-exports"
+        
     - stage: test
       name: '32-bit + dash  [GOAL: install]'
       env: >-
@@ -144,30 +130,43 @@ jobs:
         GOAL="install"
         BITCOIN_CONFIG="--enable-zmq --with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++"
         CONFIG_SHELL="/bin/dash"
-
+        
     - stage: test
       name: 'x86_64 Linux  [GOAL: install]  [bionic]  [uses qt5 dev package instead of depends Qt to speed up build and avoid timeout]'
       env: >-
         HOST=x86_64-unknown-linux-gnu
         PACKAGES="python3-zmq qtbase5-dev qttools5-dev-tools libqt5svg5-dev libqt5charts5-dev libqrencode-dev protobuf-compiler libdbus-1-dev libharfbuzz-dev libprotobuf-dev"
         DEP_OPTS="NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
-        RUN_FUNCTIONAL_TESTS=false
+        RUN_FUNCTIONAL_TESTS=true
         #TEST_RUNNER_EXTRA="--coverage --extended"  # Run extended tests so that coverage does not fail, but exclude the very slow dbcrash
         GOAL="install"
         BITCOIN_CONFIG="--enable-zmq --with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports"
         BUILD_TIMEOUT=800
-
+        
     - stage: test
-      name: 'x86_64 Linux  [GOAL: install]  [trusty]  [no functional tests, no depends, only system libs]'
+      name: 'x86_64 Linux  [GOAL: install]  [bionic]  [no GUI, no unit tests - only functional tests on legacy pre-HD wallets]'
+      env: >-
+        HOST=x86_64-unknown-linux-gnu
+        PACKAGES="python3-zmq protobuf-compiler libdbus-1-dev libharfbuzz-dev libprotobuf-dev"
+        DEP_OPTS="NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
+        RUN_UNIT_TESTS=false
+        RUN_FUNCTIONAL_TESTS=true
+        TEST_RUNNER_EXTRA="--legacywallet"  # Run functional tests on pre-HD wallet
+        GOAL="install"
+        BITCOIN_CONFIG="--enable-zmq --with-gui=no --enable-glibc-back-compat --enable-reduce-exports"
+        BUILD_TIMEOUT=800
+        
+    - stage: test
+      name: 'x86_64 Linux  [GOAL: install]  [trusty]  [no functional tests, no depends, no GUI, only system libs]'
       env: >-
         HOST=x86_64-unknown-linux-gnu
         DOCKER_NAME_TAG=ubuntu:14.04
-        PACKAGES="python3-zmq qtbase5-dev qttools5-dev-tools libqt5svg5-dev libicu-dev libpng-dev libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.1++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libqrencode-dev libgmp-dev"
+        PACKAGES="python3-zmq libicu-dev libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.1++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libgmp-dev"
         NO_DEPENDS=1
         RUN_FUNCTIONAL_TESTS=false
         GOAL="install"
-        BITCOIN_CONFIG="--enable-zmq --with-incompatible-bdb --with-gui=qt5"
-
+        BITCOIN_CONFIG="--enable-zmq --with-incompatible-bdb --with-gui=no"
+        
     - stage: test
       name: 'x86_64 Linux  [GOAL: install]  [xenial]  [no depends, only system libs]'
       env: >-
@@ -178,7 +177,7 @@ jobs:
         GOAL="install"
         BITCOIN_CONFIG="--enable-zmq --with-incompatible-bdb --with-gui=qt5 CPPFLAGS=-DDEBUG_LOCKORDER --disable-hardening --disable-asm"
 
-    - stage: test
+- stage: test
       name: 'x86_64 Linux  [GOAL: install]  [bionic]  [no depends, only system libs]'
       env: >-
         HOST=x86_64-unknown-linux-gnu
@@ -219,7 +218,7 @@ jobs:
         GOAL="deploy"
         BITCOIN_CONFIG="--enable-gui --enable-reduce-exports --enable-werror"
 
-    - stage: cmake
+- stage: cmake
       name: 'CMake Linux'
       language: cpp
       compiler:
@@ -246,6 +245,8 @@ jobs:
       addons:
         homebrew:
           packages:
+            - python3
+            - ccache
             - autoconf
             - automake
             - berkeley-db4
@@ -255,12 +256,13 @@ jobs:
             - openssl
             - pkg-config
             - protobuf
-            - python3
             - qt5
             - zmq
             - libevent
             - qrencode
             - gmp
+#         Set 'update: true' below until TravisCI updates their macOS build images.
+#         See https://travis-ci.community/t/macos-build-fails-because-of-homebrew-bundle-unknown-command/7296/16
           update: true
       before_install:
       install:
