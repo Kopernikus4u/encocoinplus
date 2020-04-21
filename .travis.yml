@@ -33,7 +33,6 @@ cache:
   directories:
     - $TRAVIS_BUILD_DIR/depends/built
     - $TRAVIS_BUILD_DIR/depends/sdk-sources
-    - $TRAVIS_BUILD_DIR/cmake-build-debug
     - $HOME/.ccache
 stages:
   - lint
@@ -106,6 +105,7 @@ jobs:
         # -Wno-psabi is to disable ABI warnings: "note: parameter passing for argument of type ... changed in GCC 7.1"
         # This could be removed once the ABI change warning does not show up by default
         BITCOIN_CONFIG="--with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports CXXFLAGS=-Wno-psabi"
+        
     - stage: test
       name: 'ARM 64-bit  [GOAL:install] [no unit or functional tests]'
       env: >-
@@ -115,6 +115,7 @@ jobs:
         RUN_FUNCTIONAL_TESTS=false
         GOAL="install"
         BITCOIN_CONFIG="--with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports"
+        
     - stage: test
       name: 'Win64  [GOAL: deploy] [no functional tests]'
       env: >-
@@ -123,6 +124,7 @@ jobs:
         RUN_FUNCTIONAL_TESTS=false
         GOAL="deploy"
         BITCOIN_CONFIG="--with-gui=qt5 --enable-reduce-exports"
+        
     - stage: test
       name: '32-bit + dash  [GOAL: install]'
       env: >-
@@ -131,6 +133,7 @@ jobs:
         GOAL="install"
         BITCOIN_CONFIG="--enable-zmq --with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++"
         CONFIG_SHELL="/bin/dash"
+        
     - stage: test
       name: 'x86_64 Linux  [GOAL: install]  [bionic]  [uses qt5 dev package instead of depends Qt to speed up build and avoid timeout]'
       env: >-
@@ -142,6 +145,20 @@ jobs:
         GOAL="install"
         BITCOIN_CONFIG="--enable-zmq --with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports"
         BUILD_TIMEOUT=800
+        
+    - stage: test
+      name: 'x86_64 Linux  [GOAL: install]  [bionic]  [no GUI, no unit tests - only functional tests on legacy pre-HD wallets]'
+      env: >-
+        HOST=x86_64-unknown-linux-gnu
+        PACKAGES="python3-zmq protobuf-compiler libdbus-1-dev libharfbuzz-dev libprotobuf-dev"
+        DEP_OPTS="NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
+        RUN_UNIT_TESTS=false
+        RUN_FUNCTIONAL_TESTS=true
+        TEST_RUNNER_EXTRA="--legacywallet"  # Run functional tests on pre-HD wallet
+        GOAL="install"
+        BITCOIN_CONFIG="--enable-zmq --with-gui=no --enable-glibc-back-compat --enable-reduce-exports"
+        BUILD_TIMEOUT=800
+        
     - stage: test
       name: 'x86_64 Linux  [GOAL: install]  [trusty]  [no functional tests, no depends, only system libs]'
       env: >-
@@ -152,6 +169,7 @@ jobs:
         RUN_FUNCTIONAL_TESTS=false
         GOAL="install"
         BITCOIN_CONFIG="--enable-zmq --with-incompatible-bdb --with-gui=qt5"
+        
     - stage: test
       name: 'x86_64 Linux  [GOAL: install]  [xenial]  [no depends, only system libs]'
       env: >-
@@ -161,7 +179,8 @@ jobs:
         NO_DEPENDS=1
         GOAL="install"
         BITCOIN_CONFIG="--enable-zmq --with-incompatible-bdb --with-gui=qt5 CPPFLAGS=-DDEBUG_LOCKORDER --disable-hardening --disable-asm"
-    - stage: test
+
+- stage: test
       name: 'x86_64 Linux  [GOAL: install]  [bionic]  [no depends, only system libs]'
       env: >-
         HOST=x86_64-unknown-linux-gnu
@@ -169,6 +188,7 @@ jobs:
         NO_DEPENDS=1
         GOAL="install"
         BITCOIN_CONFIG="--enable-zmq --with-incompatible-bdb --with-gui=qt5 CPPFLAGS=-DDEBUG_LOCKORDER"
+
 #    - stage: test
 #      name: 'x86_64 Linux  [GOAL: install]  [bionic]  [no depends, only system libs, sanitizers: fuzzer,address]'
 #      env: >-
@@ -200,7 +220,8 @@ jobs:
         RUN_FUNCTIONAL_TESTS=false
         GOAL="deploy"
         BITCOIN_CONFIG="--enable-gui --enable-reduce-exports --enable-werror"
-    - stage: cmake
+
+- stage: cmake
       name: 'CMake Linux'
       language: cpp
       compiler:
@@ -227,6 +248,8 @@ jobs:
       addons:
         homebrew:
           packages:
+            - python3
+            - ccache
             - autoconf
             - automake
             - berkeley-db4
@@ -236,13 +259,14 @@ jobs:
             - openssl
             - pkg-config
             - protobuf
-            - python3
             - qt5
             - zmq
             - libevent
             - qrencode
             - gmp
-          update: false
+#         Set 'update: true' below until TravisCI updates their macOS build images.
+#         See https://travis-ci.community/t/macos-build-fails-because-of-homebrew-bundle-unknown-command/7296/16
+          update: true
       before_install:
       install:
       before_script:
