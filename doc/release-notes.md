@@ -41,6 +41,11 @@ v4.0.0 introduces a completely new GUI for the wallet, designed and coded from t
 
 This new UI, aside from the overall design large implementation, includes user-focused improvements and features such as a brief introduction on first load, a FAQ section, one-click QRCode compatible receiving addresses, masternode creation wizard, dark and light themes, filterable staking charts, and much more.
 
+Dependencies
+------------
+
+The minimum required version of QT has been increased from 5.0 to 5.5.1 (the [depends system](https://github.com/EPGC-Project/EPGC/blob/master/depends/README.md) provides 5.9.7)
+
 You can read more details about this extensive work in ([PR #954](https://github.com/EPGC-Project/EPGC/pull/954))
 
 There are some legacy features that have not been included, however, notably the in-wallet block explorer and the governance page. The in-wallet block explorer was sorely outdated, and the governance page was a newer addition that will be seeing a return in a future version.
